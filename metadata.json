@@ -1,0 +1,8 @@
+{
+  "name": "RedDrop - Chuyển Dữ Liệu",
+  "description": "Ứng dụng chia sẻ dữ liệu và tệp tin tốc độ cao với mã QR, camera scanner, xem trước tệp và đa ngôn ngữ.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
