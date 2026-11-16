@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>Điểm Danh – Mỗi ngày một dấu mốc</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="#"><span class="brand-icon">✓</span><span>Điểm Danh<small>MỖI NGÀY MỘT DẤU MỐC</small></span></a>
+      <div id="account-area" class="account-area"></div>
+    </header>
+
+    <section id="auth-view" class="auth-layout hidden">
+      <div class="intro">
+        <span class="eyebrow">THÓI QUEN TỐT BẮT ĐẦU TỪ HÔM NAY</span>
+        <h1>Một lần mỗi ngày.<br><em>Một chuỗi đáng tự hào.</em></h1>
+        <p>Ghi lại hành trình đều đặn của bạn. Thời gian được xác nhận từ máy chủ, lịch sử lưu an toàn trong cơ sở dữ liệu.</p>
+        <div class="trust"><span>●</span> Dữ liệu đồng bộ theo tài khoản</div>
+      </div>
+      <div class="auth-card">
+        <div class="tabs"><button id="tab-login" class="tab active">Đăng nhập</button><button id="tab-register" class="tab">Đăng ký</button></div>
+        <h2 id="auth-title">Chào mừng trở lại</h2><p class="muted" id="auth-subtitle">Đăng nhập để tiếp tục chuỗi của bạn.</p>
+        <form id="auth-form">
+          <label>Email</label><input id="email" type="email" autocomplete="email" placeholder="ban@example.com" required maxlength="254">
+          <label>Mật khẩu</label><input id="password" type="password" autocomplete="current-password" placeholder="Ít nhất 8 ký tự" required minlength="8" maxlength="72">
+          <button class="primary full" id="auth-submit">Đăng nhập <span>→</span></button>
+        </form>
+        <p id="auth-message" class="message" role="status"></p>
+        <p class="fine">Mật khẩu được băm trước khi lưu. Không chia sẻ mật khẩu với người khác.</p>
+      </div>
+    </section>
+
+    <section id="app-view" class="hidden">
+      <div class="welcome"><div><span class="eyebrow">BẢNG ĐIỀU KHIỂN</span><h1>Hôm nay, bạn đã tạo dấu mốc chưa?</h1><p class="muted">Mỗi ngày hoàn thành một lần điểm danh.</p></div><div class="today-chip"><span class="live-dot"></span><span id="today-label">Đang tải ngày…</span></div></div>
+      <div class="stats">
+        <article class="stat-card featured"><div class="stat-icon">🔥</div><span>Chuỗi hiện tại</span><strong id="streak">—</strong><small>ngày liên tiếp</small></article>
+        <article class="stat-card"><div class="stat-icon">✓</div><span>Tổng điểm danh</span><strong id="total">—</strong><small>lần hoàn thành</small></article>
+        <article class="stat-card"><div class="stat-icon">🏆</div><span>Kỷ lục chuỗi</span><strong id="best">—</strong><small>ngày liên tiếp</small></article>
+      </div>
+      <div class="main-grid">
+        <section class="check-card">
+          <div class="card-heading"><div><span class="eyebrow">ĐIỂM DANH HÔM NAY</span><h2>Giữ nhịp mỗi ngày</h2></div><span class="calendar-icon">▦</span></div>
+          <div class="check-center"><div id="check-symbol" class="check-symbol">✓</div><div id="check-status" class="check-status">Sẵn sàng điểm danh?</div><p id="check-description" class="muted">Nhấn nút bên dưới để ghi nhận hôm nay.</p><button id="check-button" class="primary check-button">Điểm danh ngay <span>→</span></button><p id="server-time" class="server-time">Thời gian sẽ được ghi nhận từ máy chủ.</p></div>
+        </section>
+        <section class="history-card">
+          <div class="card-heading"><div><span class="eyebrow">NHẬT KÝ CỦA BẠN</span><h2>Lịch sử điểm danh</h2></div><span class="history-count" id="history-count">0 ngày</span></div>
+          <div id="history-list" class="history-list"><p class="empty">Chưa có dữ liệu điểm danh.</p></div>
+        </section>
+      </div>
+      <section class="danger-zone"><div><strong>Đặt lại dữ liệu điểm danh</strong><p>Toàn bộ lịch sử, tổng số lần và chuỗi hiện tại sẽ bị xóa khỏi tài khoản.</p></div><button id="reset-button" class="danger">Reset dữ liệu</button></section>
+      <footer>Ngày được tính theo múi giờ <strong id="timezone">Asia/Ho_Chi_Minh</strong>. Giờ điểm danh lấy từ máy chủ.</footer>
+    </section>
+    <div id="toast" class="toast" role="status"></div>
+  </main>
+  <dialog id="reset-dialog" class="dialog">
+    <div class="dialog-mark">!</div><h2>Xác nhận reset?</h2><p>Thao tác này sẽ xóa toàn bộ lịch sử điểm danh, tổng số lần và chuỗi. Không thể hoàn tác.</p>
+    <label>Nhập <b>RESET</b> để xác nhận</label><input id="reset-word" autocomplete="off" placeholder="Nhập RESET">
+    <div class="dialog-actions"><button id="cancel-reset" class="secondary">Hủy</button><button id="confirm-reset" class="danger" disabled>Xóa toàn bộ</button></div>
+  </dialog>
+</body>
+</html>
