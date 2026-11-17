@@ -1,74 +1,131 @@
-/** Dán vào Tiện ích mở rộng → Apps Script của Google Sheet chứa dữ liệu (trang tính đầu tiên = danh sách người dùng) */
+/**
+ * ĐIỂM DANH - Backend (Google Apps Script + Google Sheets)
+ *
+ * CÀI ĐẶT:
+ * 1. Tạo Google Sheet mới > Tiện ích mở rộng > Apps Script > dán toàn bộ file này.
+ * 2. Chạy hàm setup() một lần (cấp quyền khi được hỏi). Hàm tạo 2 tab: Users, Log.
+ * 3. Nhập người dùng vào tab Users: Phone, Birth (dd/mm/yyyy), Name. Để trống các cột còn lại.
+ * 4. Triển khai > Tùy chọn triển khai mới > Ứng dụng web
+ *    Execute as: Me | Who has access: Anyone > Deploy > copy URL kết thúc bằng /exec.
+ * 5. Sửa code sau này: phải Deploy > Manage deployments > Edit > New version.
+ */
 const TZ = 'Asia/Ho_Chi_Minh';
-const NAME='Họ tên', PHONE='Số điện thoại', DOB='Ngày sinh', STREAK='Chuỗi', BEST='Chuỗi cao nhất',
-      LDATE='Ngày điểm danh gần nhất', LTIME='Giờ điểm danh gần nhất', TOTAL='Tổng ngày điểm danh';
-const COLS=[NAME,PHONE,DOB,STREAK,BEST,LDATE,LTIME,TOTAL];
 
-function doGet(){ return out({ok:true}); }
-function doPost(e){
-  const lock=LockService.getScriptLock(); lock.waitLock(20000);
-  try{ return out(handle(JSON.parse(e.postData.contents))); }
-  catch(err){ return out({error:'Lỗi máy chủ: '+err.message}); }
-  finally{ lock.releaseLock(); }
+function setup() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const u = ss.getSheetByName('Users') || ss.insertSheet('Users');
+  const l = ss.getSheetByName('Log') || ss.insertSheet('Log');
+  // Cột văn bản thuần để Sheets không tự đổi 0901... hoặc ngày thành số/Date
+  u.getRange('A:B').setNumberFormat('@');
+  u.getRange('G:H').setNumberFormat('@');
+  l.getRange('A:B').setNumberFormat('@');
+  l.getRange('D:E').setNumberFormat('@');
+  if (u.getLastRow() === 0) {
+    u.appendRow(['Phone', 'Birth', 'Name', 'Streak', 'BestStreak', 'Total', 'LastDate', 'LastTime']);
+    u.appendRow(['0901234567', '01/01/2000', 'Nguyễn Văn A', 0, 0, 0, '', '']);
+    u.setFrozenRows(1);
+  }
+  if (l.getLastRow() === 0) {
+    l.appendRow(['Timestamp', 'Phone', 'Name', 'Date', 'Time', 'Streak', 'Action']);
+    l.setFrozenRows(1);
+  }
 }
-function out(o){ return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
-function p2(n){ return ('0'+n).slice(-2); }
-function nphone(v){
-  let s=String(v==null?'':v).replace(/\D/g,'');
-  if(s.indexOf('84')===0&&s.length===11) s='0'+s.slice(2);
-  if(s.length===9) s='0'+s;
-  return s;
+
+function doGet() { return out_({ ok: true, msg: 'Điểm danh API đang chạy' }); }
+
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(25000);
+    const req = JSON.parse(e.postData.contents);
+    const u = findUser_(req.phone, req.dob);
+    if (!u) return out_({ ok: false, code: 'AUTH', error: 'Sai số điện thoại hoặc ngày sinh.' });
+
+    const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
+    const log = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Log');
+    const now = new Date();
+    const today = fmt_(now, 'yyyy-MM-dd');
+
+    if (req.action === 'login') return out_({ ok: true, data: info_(u) });
+
+    if (req.action === 'checkin') {
+      if (u.lastDate === today) {
+        return out_({ ok: false, code: 'ALREADY', error: 'Hôm nay bạn đã điểm danh rồi.', data: info_(u) });
+      }
+      const streak = (u.lastDate === yday_() ? u.streak : 0) + 1;
+      const best = Math.max(u.best, streak);
+      const time = fmt_(now, 'HH:mm:ss');
+      const total = u.total + 1;
+      sh.getRange(u.row, 4, 1, 5).setValues([[streak, best, total, today, time]]);
+      log.appendRow([fmt_(now, 'yyyy-MM-dd HH:mm:ss'), u.phone, u.name, today, time, streak, 'CHECKIN']);
+      SpreadsheetApp.flush();
+      return out_({ ok: true, data: info_(Object.assign(u, { streak, best, total, lastDate: today, lastTime: time })) });
+    }
+
+    if (req.action === 'reset') {
+      if (req.confirm !== true) return out_({ ok: false, code: 'NOCONFIRM', error: 'Cần xác nhận để đặt lại.' });
+      sh.getRange(u.row, 4).setValue(0); // chỉ đặt chuỗi về 0, giữ lịch sử và không cho điểm danh lại trong ngày
+      log.appendRow([fmt_(now, 'yyyy-MM-dd HH:mm:ss'), u.phone, u.name, today, fmt_(now, 'HH:mm:ss'), 0, 'RESET']);
+      SpreadsheetApp.flush();
+      return out_({ ok: true, data: info_(Object.assign(u, { streak: 0 })) });
+    }
+
+    return out_({ ok: false, code: 'BAD', error: 'Yêu cầu không hợp lệ.' });
+  } catch (err) {
+    return out_({ ok: false, code: 'SERVER', error: 'Lỗi máy chủ, vui lòng thử lại: ' + err.message });
+  } finally {
+    try { lock.releaseLock(); } catch (x) {}
+  }
 }
-function pdate(v,tz){ // trả về 'yyyy-MM-dd' hoặc ''
-  if(v instanceof Date) return Utilities.formatDate(v,tz,'yyyy-MM-dd');
-  const s=String(v==null?'':v).trim(); let m;
-  if((m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/))) return m[1]+'-'+p2(m[2])+'-'+p2(m[3]);
-  if((m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/))) return m[3]+'-'+p2(m[2])+'-'+p2(m[1]);
-  return '';
-}
-function dd(a,b){ const t=s=>Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10)); return Math.round((t(a)-t(b))/864e5); }
-function vn(s){ return s?s.slice(8)+'/'+s.slice(5,7)+'/'+s.slice(0,4):''; }
-function state(v,c,tz,today,now){
-  const g=k=>v[c[k]-1], last=pdate(g(LDATE),tz);
-  let streak=+g(STREAK)||0; if(!last||dd(today,last)>1) streak=0; // chuỗi đã đứt
-  return {name:g(NAME),phone:nphone(g(PHONE)),streak:streak,best:+g(BEST)||0,total:+g(TOTAL)||0,
-          checked:last===today,last_date:vn(last),last_time:String(g(LTIME)||''),now:now.toISOString()};
-}
-function handle(b){
-  const ss=SpreadsheetApp.getActiveSpreadsheet(), ws=ss.getSheets()[0], tz=ss.getSpreadsheetTimeZone();
-  const now=new Date(), today=Utilities.formatDate(now,TZ,'yyyy-MM-dd');
-  const hdr=ws.getRange(1,1,1,Math.max(ws.getLastColumn(),1)).getValues()[0].map(x=>String(x).trim());
-  COLS.forEach(h=>{ if(hdr.indexOf(h)<0){ hdr.push(h); ws.getRange(1,hdr.length).setValue(h); } });
-  const c={}; hdr.forEach((h,i)=>{ if(h) c[h]=i+1; });
-  const phone=nphone(b.phone), dob=pdate(b.dob,tz); let r=0;
-  if(phone&&dob){
-    const rows=ws.getDataRange().getValues();
-    for(let i=1;i<rows.length;i++){
-      if(nphone(rows[i][c[PHONE]-1])===phone&&pdate(rows[i][c[DOB]-1],tz)===dob){ r=i+1; break; }
+
+function findUser_(phone, dob) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Users');
+  const n = sh.getLastRow() - 1;
+  const p = normPhone_(phone), d = normDate_(dob);
+  if (n < 1 || !p || !d) return null;
+  const rows = sh.getRange(2, 1, n, 8).getValues();
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    if (normPhone_(r[0]) === p && normDate_(r[1]) === d) {
+      return {
+        row: i + 2, phone: String(r[0]), name: String(r[2] || ''),
+        streak: Number(r[3]) || 0, best: Number(r[4]) || 0, total: Number(r[5]) || 0,
+        lastDate: normDate_(r[6]), lastTime: r[7] instanceof Date ? fmt_(r[7], 'HH:mm:ss') : String(r[7] || '')
+      };
     }
   }
-  if(!r) return {error:b.action==='login'?'Sai số điện thoại hoặc ngày sinh':'Phiên đăng nhập đã hết hạn',code:401};
-  const row=()=>ws.getRange(r,1,1,hdr.length).getValues()[0];
-  const get=k=>row()[c[k]-1];
-  const st=()=>state(row(),c,tz,today,now);
-  const put=(k,v,text)=>{ const cell=ws.getRange(r,c[k]); if(text) cell.setNumberFormat('@'); cell.setValue(v); };
-  const logRow=a=>{
-    const lg=ss.getSheetByName('NhatKy')||ss.insertSheet('NhatKy');
-    if(lg.getLastRow()===0) lg.appendRow(['Thời gian','Số điện thoại','Họ tên','Hành động']);
-    lg.appendRow([Utilities.formatDate(now,TZ,'dd/MM/yyyy HH:mm:ss'),"'"+phone,get(NAME),a]);
+  return null;
+}
+
+function info_(u) {
+  const t = fmt_(new Date(), 'yyyy-MM-dd');
+  const alive = u.lastDate === t || u.lastDate === yday_();
+  return {
+    name: u.name, streak: alive ? u.streak : 0, best: u.best, total: u.total,
+    checkedToday: u.lastDate === t, lastDate: u.lastDate, lastTime: u.lastTime
   };
-  if(b.action==='checkin'){
-    const last=pdate(get(LDATE),tz);
-    if(last===today) return Object.assign({error:'Hôm nay bạn đã điểm danh rồi'},st());
-    const streak=last&&dd(today,last)===1?(+get(STREAK)||0)+1:1;
-    put(STREAK,streak); put(BEST,Math.max(streak,+get(BEST)||0));
-    put(LDATE,vn(today),true); put(LTIME,Utilities.formatDate(now,TZ,'HH:mm:ss'),true);
-    put(TOTAL,(+get(TOTAL)||0)+1);
-    logRow('Điểm danh (chuỗi '+streak+')');
-  } else if(b.action==='reset'){
-    [STREAK,BEST,TOTAL].forEach(k=>put(k,0)); put(LDATE,'',true); put(LTIME,'',true);
-    logRow('RESET toàn bộ tiến độ');
-  }
-  SpreadsheetApp.flush();
-  return st();
+}
+
+function normPhone_(v) {
+  let s = String(v == null ? '' : v).replace(/\D/g, '');
+  if (s.indexOf('84') === 0 && s.length >= 11) s = s.slice(2);
+  s = s.replace(/^0+/, '');
+  return s.length >= 8 ? s : '';
+}
+
+// Chuẩn hóa về yyyy-MM-dd từ Date, yyyy-MM-dd hoặc dd/MM/yyyy
+function normDate_(v) {
+  if (v instanceof Date) return fmt_(v, 'yyyy-MM-dd');
+  const s = String(v == null ? '' : v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if (m) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+  return '';
+}
+
+function fmt_(d, f) { return Utilities.formatDate(d, TZ, f); }
+function yday_() { return fmt_(new Date(Date.now() - 86400000), 'yyyy-MM-dd'); }
+function out_(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
