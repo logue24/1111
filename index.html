@@ -18,12 +18,13 @@ button.gray{background:var(--bd);color:var(--tx)}.hide{display:none}.err{color:v
 .grid b{display:block;font-size:20px}.grid span{font-size:12px;color:var(--mu)}.top{display:flex;justify-content:space-between;align-items:center}
 .top a{color:var(--pr);font-size:14px;cursor:pointer}dialog{border:1px solid var(--bd);border-radius:16px;background:var(--card);color:var(--tx);max-width:340px;padding:22px}
 dialog::backdrop{background:#0008}.row{display:flex;gap:10px}
-</style></head><body><main>
+details{margin-top:14px;font-size:14px;color:var(--mu)}summary{cursor:pointer}</style></head><body><main>
 <h1>📋 Điểm Danh</h1>
 <section id="login" class="card">
  <label for="ph">Số điện thoại</label><input id="ph" type="tel" inputmode="numeric" placeholder="09xxxxxxxx" autocomplete="tel">
  <label for="dob">Ngày sinh</label><input id="dob" type="date">
  <button id="bl">Đăng nhập</button><div id="e1" class="err"></div>
+ <details id="cf"><summary>⚙ Cấu hình máy chủ</summary><label for="api">URL Apps Script (kết thúc bằng /exec)</label><input id="api" placeholder="https://script.google.com/macros/s/.../exec"><button class="gray" id="sv">Lưu &amp; kiểm tra kết nối</button><div id="e3" class="err"></div></details>
 </section>
 <section id="app" class="hide">
  <div class="card"><div class="top"><b id="nm"></b><a id="lo">Đăng xuất</a></div>
@@ -37,9 +38,9 @@ dialog::backdrop{background:#0008}.row{display:flex;gap:10px}
 <dialog id="dlg"><b>Xác nhận reset?</b><p style="color:var(--mu);font-size:14px">Chuỗi, kỷ lục, tổng ngày và lần điểm danh gần nhất của bạn sẽ bị xóa khỏi data.xlsx. Không thể hoàn tác.</p>
  <div class="row"><button class="gray" id="no">Hủy</button><button id="yes" style="background:var(--bad)">Reset</button></div></dialog>
 <script>
-const $=i=>document.getElementById(i),VN={timeZone:'Asia/Ho_Chi_Minh'};const API='';/* DÁN URL APPS SCRIPT VÀO ĐÂY; để trống = dùng server.py */
+const $=i=>document.getElementById(i),VN={timeZone:'Asia/Ho_Chi_Minh'};const API0='';let API=API0;try{API=localStorage.getItem('api')||API0}catch(e){}
 let ss=JSON.parse(sessionStorage.getItem('c')||'null'),off=0;const save=()=>sessionStorage.setItem('c',JSON.stringify(ss));
-async function api(p,b={}){let r,d;const body=JSON.stringify({action:p,...ss,...b});
+async function api(p,b={}){let r,d;if(!API&&location.protocol==='https:')return{error:'Chưa cấu hình máy chủ: mở “⚙ Cấu hình máy chủ” bên dưới, dán URL Apps Script rồi bấm Lưu.'};const body=JSON.stringify({action:p,...ss,...b});
  try{r=await(API?fetch(API,{method:'POST',body}):fetch('/api/'+p,{method:'POST',headers:{'Content-Type':'application/json'},body}));d=await r.json()}
  catch(e){return{error:'Không kết nối được máy chủ'}}
  if((r.status===401||d.code===401)&&p!=='login')out();return d}
@@ -57,5 +58,10 @@ $('ck').onclick=async()=>{$('e2').textContent='';$('ck').disabled=true;const d=a
 $('rs').onclick=()=>$('dlg').showModal();$('no').onclick=()=>$('dlg').close();
 $('yes').onclick=async()=>{$('dlg').close();const d=await api('reset');d.error?$('e2').textContent=d.error:show(d)};
 $('lo').onclick=out;
+$('api').value=API;if(!API&&location.protocol==='https:')$('cf').open=true;
+$('sv').onclick=async()=>{const u=$('api').value.trim(),e=$('e3');e.style.color='var(--mu)';e.textContent='Đang kiểm tra...';
+ try{const d=await(await fetch(u)).json();if(!d.ok)throw 0;API=u;try{localStorage.setItem('api',u)}catch(x){}
+  e.style.color='var(--ok)';e.textContent='✓ Kết nối thành công. Hãy đăng nhập.'}
+ catch(x){e.style.color='var(--bad)';e.textContent='✗ Không kết nối được. Kiểm tra: URL kết thúc bằng /exec; triển khai với quyền “Bất kỳ ai”; đã bấm cấp quyền.'}};
 if(ss)api('me').then(d=>d.name&&show(d));
 </script></body></html>
