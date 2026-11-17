@@ -37,22 +37,25 @@ dialog::backdrop{background:#0008}.row{display:flex;gap:10px}
 <dialog id="dlg"><b>Xác nhận reset?</b><p style="color:var(--mu);font-size:14px">Chuỗi, kỷ lục, tổng ngày và lần điểm danh gần nhất của bạn sẽ bị xóa khỏi data.xlsx. Không thể hoàn tác.</p>
  <div class="row"><button class="gray" id="no">Hủy</button><button id="yes" style="background:var(--bad)">Reset</button></div></dialog>
 <script>
-const $=i=>document.getElementById(i),VN={timeZone:'Asia/Ho_Chi_Minh'};let token=sessionStorage.getItem('t'),off=0;
-async function api(p,b={}){let r,d;try{r=await fetch('/api/'+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,...b})});d=await r.json()}catch(e){return{error:'Không kết nối được máy chủ'}}
- if(r.status===401&&p!=='login')out();return d}
-function out(){token=null;sessionStorage.removeItem('t');$('app').classList.add('hide');$('login').classList.remove('hide')}
+const $=i=>document.getElementById(i),VN={timeZone:'Asia/Ho_Chi_Minh'};const API='';/* DÁN URL APPS SCRIPT VÀO ĐÂY; để trống = dùng server.py */
+let ss=JSON.parse(sessionStorage.getItem('c')||'null'),off=0;const save=()=>sessionStorage.setItem('c',JSON.stringify(ss));
+async function api(p,b={}){let r,d;const body=JSON.stringify({action:p,...ss,...b});
+ try{r=await(API?fetch(API,{method:'POST',body}):fetch('/api/'+p,{method:'POST',headers:{'Content-Type':'application/json'},body}));d=await r.json()}
+ catch(e){return{error:'Không kết nối được máy chủ'}}
+ if((r.status===401||d.code===401)&&p!=='login')out();return d}
+function out(){ss=null;sessionStorage.removeItem('c');$('app').classList.add('hide');$('login').classList.remove('hide')}
 function show(s){off=new Date(s.now)-new Date();$('login').classList.add('hide');$('app').classList.remove('hide');
  $('nm').textContent=s.name+' · '+s.phone;$('st').textContent=s.streak;$('tt').textContent=s.total;$('bs').textContent=s.best;
  $('lt').textContent=s.last_time?s.last_time+' '+s.last_date.slice(0,5):'—';$('td').textContent=s.checked?'Đã ✓':'Chưa';
  $('ck').disabled=s.checked;$('ck').textContent=s.checked?'✓ ĐÃ ĐIỂM DANH LÚC '+s.last_time:'ĐIỂM DANH'}
 setInterval(()=>{const n=new Date(Date.now()+off);$('clk').textContent=n.toLocaleTimeString('vi-VN',{...VN,hour12:false});
  $('dt').textContent=n.toLocaleDateString('vi-VN',{...VN,weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'})},500);
-$('bl').onclick=async()=>{$('e1').textContent='';const d=await api('login',{phone:$('ph').value,dob:$('dob').value});
- if(d.error)return $('e1').textContent=d.error;token=d.token;sessionStorage.setItem('t',token);show(d)};
+$('bl').onclick=async()=>{$('e1').textContent='';ss={phone:$('ph').value,dob:$('dob').value};const d=await api('login');
+ if(d.error){ss=null;return $('e1').textContent=d.error}if(d.token)ss.token=d.token;save();show(d)};
 $('ck').onclick=async()=>{$('e2').textContent='';$('ck').disabled=true;const d=await api('checkin');
  if(d.error){$('e2').textContent=d.error;if(!d.name){$('ck').disabled=false;return}}d.name&&show(d)};
 $('rs').onclick=()=>$('dlg').showModal();$('no').onclick=()=>$('dlg').close();
 $('yes').onclick=async()=>{$('dlg').close();const d=await api('reset');d.error?$('e2').textContent=d.error:show(d)};
 $('lo').onclick=out;
-if(token)api('me').then(d=>d.name&&show(d));
+if(ss)api('me').then(d=>d.name&&show(d));
 </script></body></html>
