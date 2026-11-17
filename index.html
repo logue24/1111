@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Like & View Counter</title>
-  <meta name="description" content="Trang Like và đếm lượt xem">
+  <meta name="description" content="Trang Like và đếm lượt xem theo quốc gia">
   <style>
     * {
       margin: 0;
@@ -26,7 +26,7 @@
       display: block;
     }
     
-    /* Loading overlay */
+    /* Loading */
     .loading {
       position: fixed;
       inset: 0;
@@ -45,12 +45,12 @@
     }
     
     .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255,255,255,0.15);
+      width: 42px;
+      height: 42px;
+      border: 3px solid rgba(255, 255, 255, 0.12);
       border-top-color: #ef4444;
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      animation: spin 0.75s linear infinite;
     }
     
     @keyframes spin {
@@ -62,10 +62,12 @@
       font-family: system-ui, -apple-system, sans-serif;
       font-size: 14px;
       margin-top: 16px;
+      letter-spacing: 0.3px;
     }
   </style>
 </head>
 <body>
+
   <!-- Loading -->
   <div class="loading" id="loading">
     <div class="spinner"></div>
@@ -75,7 +77,7 @@
   <!-- Nhúng Apps Script -->
   <iframe 
     id="appFrame"
-    src="https://script.google.com/macros/s/AKfycbz4eU_UAO2mh702WB-esJO2uSicFVkXz473rsb8BB39Tj5FvBJri9jqLWxBjQ_1YeC8xQ/exec"
+    src="https://script.google.com/macros/s/AKfycbyFdw7Nk7uUGpPsv4bKH1QWnA-lS0PAB-7S9tjBvKjCbEM3tImahzTAQEYize1FfNoZ7g/exec"
     allowfullscreen
     loading="eager">
   </iframe>
@@ -84,17 +86,17 @@
     const frame = document.getElementById('appFrame');
     const loading = document.getElementById('loading');
 
-    // Ẩn loading khi iframe load xong
-    frame.onload = function() {
+    frame.onload = function () {
       setTimeout(() => {
         loading.classList.add('hide');
-      }, 400);
+      }, 500);
     };
 
     // Fallback nếu load quá lâu
     setTimeout(() => {
       loading.classList.add('hide');
-    }, 5000);
+    }, 6000);
   </script>
+
 </body>
 </html>
