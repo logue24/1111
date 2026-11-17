@@ -10,9 +10,10 @@
  */
 
 var TZ = 'Asia/Ho_Chi_Minh';
-// Chỉ cần điền khi script KHÔNG được mở từ trong file Sheets và bạn muốn dùng file Sheets có sẵn:
-// dán ID file (đoạn giữa /d/ và /edit trong link Google Sheets). Để trống = tự tạo file mới khi chạy khoiTao().
-var SHEET_ID = '';
+// ID file Google Sheets làm cơ sở dữ liệu (đoạn giữa /d/ và /edit trong link Google Sheets).
+// Link: https://docs.google.com/spreadsheets/d/162_054G8U-VIbS1X-ZXCVlXG6_eRfXlpcdOMLGkh1Jc/edit
+// Để trống = dùng file Sheets đang gắn với script, hoặc tự tạo file mới khi chạy khoiTao().
+var SHEET_ID = '162_054G8U-VIbS1X-ZXCVlXG6_eRfXlpcdOMLGkh1Jc';
 var ssCache_ = null;
 var SHEET_MEMBERS = 'ThanhVien';
 var SHEET_LOG = 'DiemDanh';
@@ -30,7 +31,8 @@ var LOG_SCAN_LIMIT = 3000;  // chỉ quét tối đa 3000 dòng cuối của nh�
 /* ===================== KHỞI TẠO (chạy 1 lần) ===================== */
 
 function khoiTao() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();   // có giá trị khi script được mở từ trong file Sheets
+  // Ưu tiên SHEET_ID (nếu có), sau đó đến file Sheets đang gắn với script
+  var ss = SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
   var created = false;
   if (!ss) {
     // Script tạo riêng ở script.google.com (không gắn với file Sheets)
@@ -66,9 +68,9 @@ function khoiTao() {
 /** Lấy file Google Sheets đang dùng làm cơ sở dữ liệu (gắn sẵn, hoặc theo ID đã lưu bởi khoiTao). */
 function getSS_() {
   if (ssCache_) return ssCache_;
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = SHEET_ID ? SpreadsheetApp.openById(SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) {
-    var id = SHEET_ID || PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+    var id = PropertiesService.getScriptProperties().getProperty('SHEET_ID');
     if (!id) throw new Error('Chưa có file Google Sheets. Hãy chạy hàm khoiTao() trước.');
     ss = SpreadsheetApp.openById(id);
   }
