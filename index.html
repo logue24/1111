@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <title>Điểm Danh</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+
+    <div id="config-warning" class="banner" role="alert" hidden>
+      Chưa cấu hình: mở <code>script.js</code> và dán URL Web App (Apps Script) vào <code>API_URL</code>.
+    </div>
+
+    <!-- Đang tải -->
+    <section id="view-loading" class="card loading" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="muted">Đang tải dữ liệu…</p>
+    </section>
+
+    <!-- Đăng nhập -->
+    <section id="view-login" class="card" hidden>
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">✓</div>
+        <h1>Điểm Danh</h1>
+        <p class="muted">Đăng nhập bằng số điện thoại và ngày sinh</p>
+      </div>
+      <form id="login-form" novalidate>
+        <label class="field">
+          <span>Số điện thoại</span>
+          <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="VD: 0912345678" maxlength="16" required>
+        </label>
+        <label class="field">
+          <span>Ngày sinh</span>
+          <input id="dob" name="dob" type="date" min="1900-01-01" required>
+        </label>
+        <label class="check">
+          <input id="remember" type="checkbox" checked>
+          <span>Ghi nhớ đăng nhập trên thiết bị này</span>
+        </label>
+        <p id="login-error" class="error" role="alert" hidden></p>
+        <button id="login-btn" class="btn btn-primary" type="submit">Đăng nhập</button>
+      </form>
+    </section>
+
+    <!-- Màn hình chính -->
+    <section id="view-main" hidden>
+      <header class="topbar">
+        <div>
+          <p class="muted small">Xin chào,</p>
+          <h2 id="user-name">—</h2>
+        </div>
+        <button id="logout-btn" class="btn btn-ghost" type="button">Đăng xuất</button>
+      </header>
+
+      <div class="card clock-card">
+        <div id="clock" class="clock">--:--:--</div>
+        <div id="date-text" class="muted">—</div>
+      </div>
+
+      <div class="checkin-wrap">
+        <button id="checkin-btn" class="checkin" type="button">
+          <span id="checkin-label" class="checkin-label">ĐIỂM DANH</span>
+          <span id="checkin-sub" class="checkin-sub">Nhấn để ghi nhận hôm nay</span>
+        </button>
+        <p id="status-msg" class="status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="stats">
+        <div class="stat stat-main">
+          <div class="stat-icon" aria-hidden="true">🔥</div>
+          <div id="stat-streak" class="stat-num">0</div>
+          <div class="stat-label">Chuỗi ngày</div>
+        </div>
+        <div class="stat">
+          <div id="stat-best" class="stat-num">0</div>
+          <div class="stat-label">Chuỗi dài nhất</div>
+        </div>
+        <div class="stat">
+          <div id="stat-total" class="stat-num">0</div>
+          <div class="stat-label">Tổng ngày</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>7 ngày gần nhất</h3>
+        <div id="week" class="week"></div>
+        <p id="last-time" class="muted small"></p>
+      </div>
+
+      <div class="card">
+        <h3>Lịch sử điểm danh</h3>
+        <ul id="history" class="history"></ul>
+      </div>
+
+      <div class="danger-zone">
+        <button id="reset-btn" class="btn btn-danger-outline" type="button">Reset dữ liệu điểm danh</button>
+      </div>
+    </section>
+
+    <p class="footnote">Thời gian ghi nhận do máy chủ xác định theo giờ Việt Nam (GMT+7).</p>
+  </main>
+
+  <!-- Hộp thoại xác nhận Reset -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h3 id="modal-title">Xác nhận reset</h3>
+      <p>Thao tác này đưa <strong>chuỗi hiện tại, chuỗi dài nhất và tổng ngày</strong> về 0 và <strong>không thể hoàn tác</strong>.</p>
+      <label class="field">
+        <span>Gõ <strong>RESET</strong> để xác nhận</span>
+        <input id="reset-input" type="text" autocomplete="off" autocapitalize="characters" placeholder="RESET">
+      </label>
+      <p id="modal-error" class="error" role="alert" hidden></p>
+      <div class="modal-actions">
+        <button id="reset-cancel" class="btn btn-ghost" type="button">Hủy</button>
+        <button id="reset-confirm" class="btn btn-danger" type="button" disabled>Xác nhận reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
