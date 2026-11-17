@@ -10,6 +10,10 @@
  */
 
 var TZ = 'Asia/Ho_Chi_Minh';
+// Chỉ cần điền khi script KHÔNG được mở từ trong file Sheets và bạn muốn dùng file Sheets có sẵn:
+// dán ID file (đoạn giữa /d/ và /edit trong link Google Sheets). Để trống = tự tạo file mới khi chạy khoiTao().
+var SHEET_ID = '';
+var ssCache_ = null;
 var SHEET_MEMBERS = 'ThanhVien';
 var SHEET_LOG = 'DiemDanh';
 var MEMBER_HEADERS = ['SĐT', 'Ngày sinh', 'Họ tên', 'Chuỗi hiện tại', 'Chuỗi dài nhất', 'Tổng ngày', 'Ngày điểm danh cuối', 'Thời gian điểm danh cuối', 'Reset lần cuối'];
@@ -26,7 +30,21 @@ var LOG_SCAN_LIMIT = 3000;  // chỉ quét tối đa 3000 dòng cuối của nh�
 /* ===================== KHỞI TẠO (chạy 1 lần) ===================== */
 
 function khoiTao() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();   // có giá trị khi script được mở từ trong file Sheets
+  var created = false;
+  if (!ss) {
+    // Script tạo riêng ở script.google.com (không gắn với file Sheets)
+    var props = PropertiesService.getScriptProperties();
+    var id = SHEET_ID || props.getProperty('SHEET_ID');
+    if (id) {
+      ss = SpreadsheetApp.openById(id);
+    } else {
+      ss = SpreadsheetApp.create('Điểm Danh - Cơ sở dữ liệu');
+      created = true;
+    }
+    props.setProperty('SHEET_ID', ss.getId());       // nhớ lại để Web App dùng đúng file này
+  }
+  ssCache_ = ss;
   ss.setSpreadsheetTimeZone(TZ);
   var members = ss.getSheetByName(SHEET_MEMBERS) || ss.insertSheet(SHEET_MEMBERS);
   var log = ss.getSheetByName(SHEET_LOG) || ss.insertSheet(SHEET_LOG);
@@ -35,6 +53,27 @@ function khoiTao() {
   if (members.getLastRow() < 2) {
     members.getRange(2, 1, 1, 3).setValues([['0900000000', '01/01/2000', 'Nguyễn Văn A (mẫu - hãy xóa)']]);
   }
+  if (created) {
+    // file mới tạo có sẵn 1 tab trống mặc định → xóa cho gọn
+    ss.getSheets().forEach(function (s) {
+      var n = s.getName();
+      if (n !== SHEET_MEMBERS && n !== SHEET_LOG) ss.deleteSheet(s);
+    });
+  }
+  Logger.log('Đã khởi tạo xong. File Google Sheets: ' + ss.getUrl());
+}
+
+/** Lấy file Google Sheets đang dùng làm cơ sở dữ liệu (gắn sẵn, hoặc theo ID đã lưu bởi khoiTao). */
+function getSS_() {
+  if (ssCache_) return ssCache_;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    var id = SHEET_ID || PropertiesService.getScriptProperties().getProperty('SHEET_ID');
+    if (!id) throw new Error('Chưa có file Google Sheets. Hãy chạy hàm khoiTao() trước.');
+    ss = SpreadsheetApp.openById(id);
+  }
+  ssCache_ = ss;
+  return ss;
 }
 
 function setupSheet_(sheet, headers, formats) {
@@ -215,7 +254,7 @@ function history_(phone) {
 /* ===================== TIỆN ÍCH ===================== */
 
 function sheet_(name) {
-  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  var sh = getSS_().getSheetByName(name);
   if (!sh) throw new Error('Chưa có tab "' + name + '". Hãy chạy hàm khoiTao() trước.');
   return sh;
 }
@@ -266,7 +305,7 @@ function normPhone_(v) {
 function normDate_(v) {
   if (isDate_(v)) {
     if (isNaN(v.getTime())) return '';
-    return Utilities.formatDate(v, SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+    return Utilities.formatDate(v, getSS_().getSpreadsheetTimeZone(), 'yyyy-MM-dd');
   }
   var s = String(v == null ? '' : v).trim();
   var m, y, mo, d;
