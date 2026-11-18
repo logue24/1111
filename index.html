@@ -3,100 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Like & View Counter</title>
-  <meta name="description" content="Trang Like và đếm lượt xem theo quốc gia">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #0f172a;
-    }
-    
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
-    
-    /* Loading */
-    .loading {
-      position: fixed;
-      inset: 0;
-      background: #0f172a;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      transition: opacity 0.4s ease;
-    }
-    
-    .loading.hide {
-      opacity: 0;
-      pointer-events: none;
-    }
-    
-    .spinner {
-      width: 42px;
-      height: 42px;
-      border: 3px solid rgba(255, 255, 255, 0.12);
-      border-top-color: #ef4444;
-      border-radius: 50%;
-      animation: spin 0.75s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .loading-text {
-      color: #94a3b8;
-      font-family: system-ui, -apple-system, sans-serif;
-      font-size: 14px;
-      margin-top: 16px;
-      letter-spacing: 0.3px;
-    }
-  </style>
+  <title>Like</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <!-- Loading -->
-  <div class="loading" id="loading">
-    <div class="spinner"></div>
-    <div class="loading-text">Đang tải...</div>
+  <div class="container">
+    <button class="like-btn" id="likeBtn">
+      <svg class="heart" viewBox="0 0 24 24">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      </svg>
+    </button>
+    <div class="count" id="count">0</div>
   </div>
 
-  <!-- Nhúng Apps Script -->
-  <iframe 
-    id="appFrame"
-    src="https://script.google.com/macros/s/AKfycbyFdw7Nk7uUGpPsv4bKH1QWnA-lS0PAB-7S9tjBvKjCbEM3tImahzTAQEYize1FfNoZ7g/exec"
-    allowfullscreen
-    loading="eager">
-  </iframe>
-
-  <script>
-    const frame = document.getElementById('appFrame');
-    const loading = document.getElementById('loading');
-
-    frame.onload = function () {
-      setTimeout(() => {
-        loading.classList.add('hide');
-      }, 500);
-    };
-
-    // Fallback nếu load quá lâu
-    setTimeout(() => {
-      loading.classList.add('hide');
-    }, 6000);
-  </script>
-
+  <script src="script.js"></script>
 </body>
 </html>
