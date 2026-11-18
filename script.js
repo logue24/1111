@@ -1,4 +1,4 @@
-const API = "https://script.google.com/macros/s/AKfycbzj_S-Oq-81GqJwVLFhcQBWVZI54bihHtUTsFFBJiRCH7-qAj78seEPNeCmxkNLX3p1/exec";
+const API = "https://script.google.com/macros/s/AKfycbyIQkj9DnHJ9c6dpsHxAg3Uy7nlKMBJvqNgZ-UK-M8h_ATkZVHlgUpj-GZxPdjuTA5O/exec";
 
 let currentCount = 0;
 let alreadyLiked = false;
