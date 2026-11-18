@@ -4,22 +4,27 @@ let currentCount = 0;
 let alreadyLiked = false;
 let isProcessing = false;
 
-// Lấy hoặc tạo Device ID
+// Tạo hoặc lấy Device ID
 let deviceId = localStorage.getItem('like_device_id');
 if (!deviceId) {
-  deviceId = 'dev_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 12);
+  deviceId = 'dev_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 14);
   localStorage.setItem('like_device_id', deviceId);
 }
 
 // Kiểm tra nhanh từ localStorage
 if (localStorage.getItem('has_liked') === '1') {
   alreadyLiked = true;
-  document.getElementById('likeBtn').classList.add('liked');
-  document.getElementById('likeBtn').disabled = true;
+  const btn = document.getElementById('likeBtn');
+  if (btn) {
+    btn.classList.add('liked');
+    btn.disabled = true;
+  }
 }
 
 function animateCount(from, to) {
   const el = document.getElementById('count');
+  if (!el) return;
+
   const duration = 700;
   const start = performance.now();
 
@@ -50,8 +55,14 @@ function createParticles(btn) {
 }
 
 async function callAPI(action) {
-  const url = `\( {API}?action= \){action}&deviceId=${encodeURIComponent(deviceId)}`;
-  const res = await fetch(url);
+  const url = `\( {API}?action= \){action}&deviceId=\( {encodeURIComponent(deviceId)}&t= \){Date.now()}`;
+  
+  const res = await fetch(url, {
+    method: 'GET',
+    redirect: 'follow'
+  });
+
+  if (!res.ok) throw new Error('Network error');
   return await res.json();
 }
 
@@ -61,7 +72,7 @@ async function handleLike() {
   isProcessing = true;
   const btn = document.getElementById('likeBtn');
 
-  // Hiện liked ngay (optimistic)
+  // Optimistic UI
   alreadyLiked = true;
   btn.classList.add('liked');
   btn.disabled = true;
@@ -70,21 +81,22 @@ async function handleLike() {
 
   try {
     const data = await callAPI('like');
-    
-    if (data.count !== undefined && data.count !== currentCount) {
+
+    if (typeof data.count === 'number' && data.count !== currentCount) {
       animateCount(currentCount, data.count);
       currentCount = data.count;
     }
 
-    if (!data.success && !data.alreadyLiked) {
-      // Trường hợp hiếm: server từ chối
+    // Nếu server từ chối (hiếm)
+    if (data.success === false && data.alreadyLiked !== true) {
       alreadyLiked = false;
       btn.classList.remove('liked');
       btn.disabled = false;
       localStorage.removeItem('has_liked');
     }
   } catch (err) {
-    console.error(err);
+    console.error('Like error:', err);
+    // Giữ nguyên trạng thái liked ở client nếu lỗi mạng
   } finally {
     isProcessing = false;
   }
@@ -93,13 +105,13 @@ async function handleLike() {
 async function fetchStatus() {
   try {
     const data = await callAPI('status');
-    
-    if (data.count !== undefined && data.count !== currentCount) {
+
+    if (typeof data.count === 'number' && data.count !== currentCount) {
       animateCount(currentCount, data.count);
       currentCount = data.count;
     }
 
-    if (data.alreadyLiked) {
+    if (data.alreadyLiked === true) {
       alreadyLiked = true;
       const btn = document.getElementById('likeBtn');
       btn.classList.add('liked');
@@ -107,14 +119,14 @@ async function fetchStatus() {
       localStorage.setItem('has_liked', '1');
     }
   } catch (err) {
-    console.error(err);
+    console.error('Status error:', err);
   }
 }
 
-// Sự kiện click
+// Gắn sự kiện
 document.getElementById('likeBtn').addEventListener('click', handleLike);
 
-// Lấy dữ liệu ngay khi vào trang
+// Chạy ngay khi tải trang
 fetchStatus();
 
 // Tự cập nhật mỗi 6 giây
